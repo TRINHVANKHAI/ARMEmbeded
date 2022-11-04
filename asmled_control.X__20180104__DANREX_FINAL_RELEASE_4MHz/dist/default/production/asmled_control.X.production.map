@@ -1,0 +1,97 @@
+MPLINK 5.08, LINKER
+Linker Map File - Created Thu Jan 04 09:30:27 2018
+
+                                 Section Info
+                  Section       Type    Address   Location Size(Bytes)
+                ---------  ---------  ---------  ---------  ---------
+                 RES_VECT       code   0x000000    program   0x000050
+                   .cinit    romdata   0x000028    program   0x000004
+                MAIN_PROG       code   0x00002a    program   0x0001de
+.config_0FFF_BUILD/DEFAULT/PRODUCTION/LEDCONT       code   0x000fff    program   0x000002
+
+
+
+                              Program Memory Usage 
+                               Start         End      
+                           ---------   ---------      
+                            0x000000    0x000118      
+                            0x000fff    0x000fff      
+            282 out of 1029 program addresses used, program memory utilization is 27%
+
+
+
+                              Symbols - Sorted by Name
+                     Name    Address   Location    Storage File                     
+                ---------  ---------  ---------  --------- ---------                
+            CM2_TEST_FUNC   0x000114    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+               DELAY_10us   0x0000f1    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+            DELAY_PADDING   0x0000fc    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+                 GET_DUTY   0x0000bb    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+               GET_TON_P1   0x0000c6    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+               GET_TON_P2   0x0000cc    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+               GET_TON_P3   0x0000d2    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+               GET_TON_P4   0x0000d8    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+               GET_TON_P5   0x0000de    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+                     LOOP   0x000093    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+               PHASE_MOVE   0x00007a    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+                  PWM_OFF   0x00008f    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+                  PWM_PUT   0x000060    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+                  RESTART   0x00002a    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+                    START   0x000053    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+                SYS_SLEEP   0x0000e4    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+           TMR0_TEST_FREQ   0x00010f    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_003A   0x000064    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_0043   0x00006d    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_0054   0x00007e    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_005D   0x000087    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_0090   0x0000ba    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00C7   0x0000f1    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00C8   0x0000f2    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00C9   0x0000f3    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00CA   0x0000f4    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00CB   0x0000f5    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00CC   0x0000f6    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00CD   0x0000f7    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00CE   0x0000f8    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00CF   0x0000f9    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00D0   0x0000fa    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+
+
+
+                              Symbols - Sorted by Address
+                     Name    Address   Location    Storage File                     
+                ---------  ---------  ---------  --------- ---------                
+                  RESTART   0x00002a    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+                    START   0x000053    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+                  PWM_PUT   0x000060    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_003A   0x000064    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_0043   0x00006d    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+               PHASE_MOVE   0x00007a    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_0054   0x00007e    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_005D   0x000087    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+                  PWM_OFF   0x00008f    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+                     LOOP   0x000093    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_0090   0x0000ba    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+                 GET_DUTY   0x0000bb    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+               GET_TON_P1   0x0000c6    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+               GET_TON_P2   0x0000cc    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+               GET_TON_P3   0x0000d2    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+               GET_TON_P4   0x0000d8    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+               GET_TON_P5   0x0000de    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+                SYS_SLEEP   0x0000e4    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00C7   0x0000f1    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+               DELAY_10us   0x0000f1    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00C8   0x0000f2    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00C9   0x0000f3    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00CA   0x0000f4    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00CB   0x0000f5    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00CC   0x0000f6    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00CD   0x0000f7    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00CE   0x0000f8    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00CF   0x0000f9    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+          _MAIN_PROG_00D0   0x0000fa    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+            DELAY_PADDING   0x0000fc    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+           TMR0_TEST_FREQ   0x00010f    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+            CM2_TEST_FUNC   0x000114    program     static C:\Users\TVK\MPLABXProjects\asmled_control.X\ledcontrol.asm
+
+

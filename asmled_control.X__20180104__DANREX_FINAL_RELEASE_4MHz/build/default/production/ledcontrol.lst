@@ -1,0 +1,814 @@
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE  1
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00001 
+                      00002 ;-----------------------------------------------------
+                      00003 ; Project:      DANREX LED LAMP CONTROL
+                      00004 ; MCU:          PIC16F506
+                      00005 ; File:         ledcontrol.asm
+                      00006 ; Author:       kai@hinoeng.co.jp    
+                      00007 ; Created on March 17, 2017, 8:07 AM      
+                      00008 ;-----------------------------------------------------
+                      00009 ; MAX DUTY 50%@50kHz
+                      00010 ; DUTY SETTING USE DUTY_TABLE
+                      00011 ;=====================================================  
+                      00012     
+Warning[205]: Found directive in column 1. (LIST)
+                      00013 LIST P=16F506
+                      00014 #include <p16f506.inc>
+                      00001         LIST
+                      00002 
+                      00003 ;==========================================================================
+                      00004 ; Build date : Jan 30 2017
+                      00005 ;  MPASM PIC16F506 processor include
+                      00006 ; 
+                      00007 ;  (c) Copyright 1999-2017 Microchip Technology, All rights reserved
+                      00008 ;==========================================================================
+                      00009 
+                      00243         LIST
+                      00015 #include <sysconfig.inc>    
+                      00001 ;-----------------------------------------------------
+                      00002 ; Project:      DANREX LED LAMP CONTROL
+                      00003 ; MCU:          PIC16F506
+                      00004 ; File:         sysconfig.inc
+                      00005 ; Author:       kai@hinoeng.co.jp
+                      00006 ; Created on August 15, 2017, 9:20 AM                                   
+                      00007 ;-----------------------------------------------------
+                      00008 #define RESMASK         0xf8
+                      00009 #define PORSTAT         0x18                            
+                      00010 ;-------------------------------
+                      00011 ; PWM STEP CONFIGURATIONs
+                      00012 ;-------------------------------   
+                      00013                                 
+                      00014 #if 0                           ; #if 0: Use 4 steps per second 
+                      00015 #define PWM_STEP_8  8           ; #if 1: Use 5 steps per second
+                      00016 #else
+                      00017 #define PWM_STEP_5  5
+                      00018 #endif    
+                      00019     
+                      00020     
+                      00021 #ifdef PWM_STEP_8
+                      00022 #define PWM_STEP PWM_STEP_8     ; @1500ms / 8 = 187 ms
+                      00023 ;#define PWM_IVAL    0xb6       ; PWM interval 182 x 256 x 4us = 187 ms
+                      00024 #define PWM_IVAL    0xf3        ; PWM interval 244 x 256 x 4us = 250 ms                         
+                      00025 #else
+                      00026 #ifdef PWM_STEP_5
+                      00027 #define PWM_STEP PWM_STEP_5
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE  2
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00028 #define PWM_IVAL    0xc3        ; PWM interval 244 x 256 x 4us = 200ms
+                      00029 #endif
+                      00030 #endif 
+                      00031     
+                      00032 #define PWM_TSIZE PWM_STEP    
+                      00033 #define PWM_DOFF  PWM_TSIZE    
+                      00034     
+                      00035     
+                      00036 ;----------------------------
+                      00037 ; OTHER CONFIGURATIONs
+                      00038 ;----------------------------    
+                      00039 #define CONFIG_USE_8CYCLES      ; Use 8 checking cycles, comment out 
+                      00040                                 ; if unused
+                      00041 #ifdef CONFIG_USE_8CYCLES
+                      00042 #define PANEL_CHECK_INTERVAL    2 ; 8s
+                      00043                                   ; 1 - 2s   1 x PWM_IVAL x 8
+                      00044                                   ; 2 - 4s   2 x PWM_IVAL x 8
+                      00045                                   ; 3 - 6s   3 x PWM_IVAL x 8
+                      00046                                   ; 4 - 8s   4 x PWM_IVAL x 8
+                      00047 #endif                          
+                      00048 
+                      00049 
+                      00050 
+                      00051 #define CONFIG_DELAY_PAD
+                      00052 #ifdef  CONFIG_DELAY_PAD
+                      00053 #define PWM_TOFF    0xc3        ; T_OFF: 200ms                            
+                      00054 #define PWM_TPAD_IVAL       0xa     ;   10x1024us
+                      00055 #define PWM_TPAD            0x22    ; 34 x PWM_TPAD_IVAL = 350ms
+                      00056                                     ; 1500 - 200 x PWM_STEP = 350ms
+                      00057 #endif                            
+                      00016     
+                      00017 ;----------------------------------------
+                      00018 ; CONFIGURATIONS
+                      00019 ;----------------------------------------    
+                      00020 ; SYSCLK:         4MHz - internal OSC
+                      00021 ; WATCHDOG:       OFF
+                      00022 ; MASTER RESET:   Unused
+                      00023 ; CODE PROTECTED: OFF 
+                      00024 ;----------------------------------------
+Warning[205]: Found directive in column 1. (__CONFIG)
+0FFF   0F94           00025 __CONFIG (_IntRC_OSC_RB4EN & _WDT_OFF & _MCLRE_OFF & _IOSCFS_OFF & _CP_OFF)
+                      00026    
+                      00027       
+                      00028 ;------------------------
+                      00029 ; PWM control registers
+                      00030 ;------------------------  
+Warning[205]: Found directive in column 1. (CBLOCK)
+                      00031 CBLOCK  0x12
+  00000012            00032     pwmDuty
+  00000013            00033     pwmPeriod
+  00000014            00034     pwmIndex
+  00000015            00035     pwmInterval
+  00000016            00036     pwmTon                  ;;;ADDED 20170901
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE  3
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+  00000017            00037     pwmPad
+                      00038     ;;pwmDi
+  00000018            00039     pwmPi
+  00000019            00040     pwmTR
+  0000001A            00041     pwmFR
+  0000001B            00042     inpCheck
+  0000001C            00043     cmpFR
+  0000001D            00044     resSR
+                      00045     ENDC    
+                      00046 ;------------------
+                      00047 ; INITIALIZATION
+                      00048 ;------------------
+                      00049 RES_VECT  CODE    0x0000            ; processor reset vector 
+0000   04A4           00050     BCF     FSR,5                   ; Select BANK0
+0001   04C4           00051     BCF     FSR,6                   ; Select BANK0 
+0002   0203           00052     MOVF    STATUS,W                ; Get status register
+0003   0EF8           00053     ANDLW   RESMASK    
+0004   003D           00054     MOVWF   resSR
+0005   04E3           00055     BCF     STATUS,7                ; Clear reset cause's flag
+0006   04C3           00056     BCF     STATUS,6
+0007   04A3           00057     BCF     STATUS,5
+0008   0004           00058     CLRWDT                          ; TMR0 init
+0009   0061           00059     CLRF    TMR0                    ; Timer interval 2ms
+000A   0CC2           00060     MOVLW   0xc2                    ; TMR0 0x02=4us 0x03=8us
+000B   0002           00061     OPTION  
+000C   0066           00062     CLRF    PORTB
+000D   0067           00063     CLRF    PORTC
+000E   0CCF           00064     MOVLW   0xcf
+000F   0006           00065     TRIS    PORTB                   ; Set RB4, RB5 as output
+0010   0CF7           00066     MOVLW   0xf7
+0011   0007           00067     TRIS    PORTC                   ; Set RC3 as output
+0012   0C30           00068     MOVLW   0x30
+0013   0029           00069     MOVWF   ADCON0                  ; Disable ADC
+0014   0CEB           00070     MOVLW   0xeb                    ; CM1 Disable output
+0015   0028           00071     MOVWF   CM1CON0                 ; CM1 Disable wakeup    
+0016   0CEA           00072     MOVLW   0xea                    ; CM2 disable output
+0017   002B           00073     MOVWF   CM2CON0                 ; CM2 Enable wakeup
+0018   0CA8           00074     MOVLW   0xa8                    ; Use low range
+0019   002C           00075     MOVWF   VRCON                   ; VRCON = 0.8V @2.4VDC                          
+001A   09??           00076     CALL    DELAY_10us              ; NEED delay for stable
+001B   09??           00077     CALL    DELAY_10us
+001C   007B           00078     CLRF    inpCheck                
+001D   0074           00079     CLRF    pwmIndex
+001E   0079           00080     CLRF    pwmTR
+001F   0075           00081     CLRF    pwmInterval    
+0020   0467           00082     BCF     PORTC,3                 ; Turn off PWMBOOST
+0021   0486           00083     BCF     PORTB,4                 ; Turn off LED1
+0022   04A6           00084     BCF     PORTB,5                 ; Turn off LED2    
+0023   021D           00085     MOVF    resSR,W
+0024   0F18           00086     XORLW   PORSTAT
+0025   0743           00087     BTFSS   STATUS,Z                ; Detect POR
+0026   0A??           00088     GOTO    RESTART                 ; Check solar panel input
+0027   0A??           00089     GOTO    START                   ; Enter running mode
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE  4
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00090 ;-------------------
+                      00091 ; MAIN PROCESS
+                      00092 ;------------------- 
+                      00093 MAIN_PROG CODE                      ; Let linker place main program
+                      00094  
+0000                  00095 RESTART 
+                      00096 
+0000   0208           00097     MOVF    CM1CON0,W               ; 
+0001   0E80           00098     ANDLW   0x80
+0002   0743           00099     BTFSS   STATUS,Z                ; if C1OUT=0
+0003   0A??           00100     GOTO    SYS_SLEEP
+                      00101 
+                      00102 #ifdef CONFIG_USE_8CYCLES           ; Enable 8 checking cycles   
+0004   0201           00103     MOVF    TMR0,W
+0005   019A           00104     XORWF   pwmFR,W
+0006   0E80           00105     ANDLW   0x80
+0007   0643           00106     BTFSC   STATUS,Z
+0008   0A??           00107     GOTO    RESTART
+0009   027A           00108     COMF    pwmFR,F
+000A   02B9           00109     INCF    pwmTR,F                 ; Increse timer counter
+000B   0CC3           00110     MOVLW   PWM_IVAL                ; 200ms
+000C   0199           00111     XORWF   pwmTR,W
+000D   0743           00112     BTFSS   STATUS,Z                ;
+000E   0A??           00113     GOTO    RESTART
+000F   0079           00114     CLRF    pwmTR                   ; Exceed timer interval, reset  
+0010   02B5           00115     INCF    pwmInterval,F
+0011   0C02           00116     MOVLW   PANEL_CHECK_INTERVAL    ; Reach solar pannel's check    
+0012   0195           00117     XORWF   pwmInterval,W           ; interval value
+0013   0743           00118     BTFSS   STATUS,Z                ; 
+0014   0A??           00119     GOTO    RESTART
+0015   0075           00120     CLRF    pwmInterval
+0016   037B           00121     RLF     inpCheck,F              ; Goto sleep if C2OUT=1
+0017   06EB           00122     BTFSC   CM2CON0,C2OUT           ; Get C2OUT
+0018   051B           00123     BSF     inpCheck,0
+0019   07EB           00124     BTFSS   CM2CON0,C2OUT
+001A   007B           00125     CLRF    inpCheck 
+001B   0214           00126     MOVF    pwmIndex,W              ; Get checking cycle count
+001C   02B4           00127     INCF    pwmIndex,F              ; Increase checking cycle 
+001D   0F08           00128     XORLW   8                       ; Make sure solar panel input
+001E   0743           00129     BTFSS   STATUS,Z                ; is low in 8 checking cycles
+001F   0A??           00130     GOTO    RESTART                 ; 8 x 1s = 8s
+0020   021B           00131     MOVF    inpCheck,W
+0021   0EFF           00132     ANDLW   0xFF                    
+0022   0743           00133     BTFSS   STATUS,Z                ; is low for 8 times    
+0023   0A??           00134     GOTO    SYS_SLEEP               ; goto sleep
+0024   007B           00135     CLRF    inpCheck                
+0025   0074           00136     CLRF    pwmIndex
+0026   0079           00137     CLRF    pwmTR
+0027   0075           00138     CLRF    pwmInterval
+0028   0A??           00139     GOTO    START                   ; else enter normal running mode
+                      00140 #else                               ; Check solar panel once only     
+                      00141     MOVF    CM2CON0,W
+                      00142     ANDLW   0x80
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE  5
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00143     BTFSS   STATUS,Z
+                      00144     GOTO    SYS_SLEEP 
+                      00145     GOTO    START                   ; Enter running mode          
+                      00146 #endif    
+                      00147 
+                      00148 ;-----------------------
+                      00149 ; START RUNNING MODE
+                      00150 ;-----------------------    
+0029                  00151 START
+0029   0568           00152     BSF     CM1CON0,C1ON            ; Enable C1
+002A   0C05           00153     MOVLW   PWM_TSIZE               ; Duty table size
+002B   0094           00154     SUBWF   pwmIndex,W
+002C   0643           00155     BTFSC   STATUS,Z                ;
+002D   0074           00156     CLRF    pwmIndex                ; If index == 5; clear it
+                      00157     
+                      00158 ;;;----20170901 Jail 50kHz @50%duty-------   
+                      00159 ;;; For unlock, set to #if 1    
+                      00160 ;;;---------------------------------------    
+                      00161 #if 0 
+                      00162     MOVF    pwmIndex,W              ; Get index  
+                      00163     CALL    GET_DUTY
+                      00164     MOVWF   pwmDuty                 ; Duty index      
+                      00165     MOVLW   PWM_DOFF                ; Period offset
+                      00166     ADDWF   pwmIndex,W              ;
+                      00167     CALL    GET_DUTY                ; Get period
+                      00168     MOVWF   pwmPeriod
+                      00169 #else
+002E   0C01           00170     MOVLW   0x01
+002F   0032           00171     MOVWF   pwmDuty
+0030   0C01           00172     MOVLW   0x01
+0031   0033           00173     MOVWF   pwmPeriod
+                      00174 #endif 
+                      00175 ;;;----20170901 Jail 50kHz @50%duty-------       
+                      00176     
+                      00177 ;;;-------20170901------------    
+0032   0214           00178     MOVF    pwmIndex,W              
+0033   09??           00179     CALL    GET_TON_P3
+0034   0036           00180     MOVWF   pwmTon
+                      00181 ;;;-------20170901------------    
+                      00182 #ifndef CONFIG_DELAY_PAD            ; Default turned on
+                      00183     MOVLW   3                       ; Turn off 1st of PWM per one sec 
+                      00184     SUBWF   pwmIndex,W              ; #if 0: normal mode
+                      00185     BTFSS   STATUS,0                ; #if 1: 2 first PWM will be turned off
+                      00186     GOTO    PWM_OFF                 ; to keep led clearly off and reduce
+                      00187                                     ; consumption
+                      00188 #endif    
+0035   05A6           00189     BSF     PORTB,RB5
+                      00190     ;;;BSF          PORTB,RB4    
+0036                  00191 PWM_PUT                             ; PWMBOOST control
+0036   0467           00192     BCF     PORTC,RC3               ; POS     
+0037   0213           00193     MOVF    pwmPeriod,W
+0038   0038           00194     MOVWF   pwmPi
+0039   02F8           00195     DECFSZ  pwmPi,F
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE  6
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+003A   0A??           00196     GOTO    $-1
+003B   0000           00197     NOP
+003C   06E8           00198     BTFSC   CM1CON0,C1OUT           ; If overcurrent occured
+                      00199     ;;GOTO    SYS_SLEEP             ; Goto sleep immediately
+003D   0334           00200     RRF     pwmIndex,F              ; Or reduce pwm duty 
+003E   0201           00201     MOVF    TMR0,W
+003F   019A           00202     XORWF   pwmFR,W             
+0040   0567           00203     BSF     PORTC,RC3               ; NEG     
+0041   0E80           00204     ANDLW   0x80                    ;
+0042   0643           00205     BTFSC   STATUS,Z                ; Test if TMR0 is overflow
+0043   0A??           00206     GOTO    $+3                     ; No overflow is occured
+0044   027A           00207     COMF    pwmFR,F
+0045   02B9           00208     INCF    pwmTR,F                 ; Increase PWM count
+                      00209     ;;;MOVLW   0x14                 ; Set major duty here 20ms
+0046   0216           00210     MOVF    pwmTon,W                ; 20170901 free pwm Ton
+0047   0099           00211     SUBWF   pwmTR,W                 ; Increase timer counter
+0048   0743           00212     BTFSS   STATUS,Z                ; If 20ms then stop PWM
+0049   0A??           00213     GOTO    PWM_PUT
+                      00214     
+004A   0467           00215     BCF     PORTC,RC3
+004B   04A6           00216     BCF     PORTB,RB5
+004C   0079           00217     CLRF    pwmTR
+004D   09??           00218     CALL    DELAY_10us
+004E   09??           00219     CALL    DELAY_10us
+004F   0586           00220     BSF     PORTB,RB4
+                      00221     ;RLF            pwmTon,F
+                      00222     ;-------------------------------
+0050                  00223 PHASE_MOVE
+0050   0467           00224     BCF     PORTC,RC3               ; POS     
+0051   0213           00225     MOVF    pwmPeriod,W
+0052   0038           00226     MOVWF   pwmPi
+0053   02F8           00227     DECFSZ  pwmPi,F
+0054   0A??           00228     GOTO    $-1
+0055   0000           00229     NOP
+0056   06E8           00230     BTFSC   CM1CON0,C1OUT           ; If overcurrent occured
+                      00231     ;;GOTO    SYS_SLEEP             ; Goto sleep immediately
+0057   0334           00232     RRF     pwmIndex,F              ; Or reduce pwm duty            
+0058   0201           00233     MOVF    TMR0,W
+0059   019A           00234     XORWF   pwmFR,W     
+005A   0567           00235     BSF     PORTC,RC3               ; NEG    
+005B   0E80           00236     ANDLW   0x80                    ;
+005C   0643           00237     BTFSC   STATUS,Z                ; Test if TMR0 is overflow
+005D   0A??           00238     GOTO    $+3                     ; No overflow is occured
+005E   027A           00239     COMF    pwmFR,F
+005F   02B9           00240     INCF    pwmTR,F                 ; Increase PWM count
+                      00241     ;;;MOVLW   0x14                 ; Set major duty here 20ms
+0060   0216           00242     MOVF    pwmTon,W                ; 20170901 free pwm Ton
+0061   0099           00243     SUBWF   pwmTR,W                 ; Increase timer counter
+0062   0743           00244     BTFSS   STATUS,Z                ; If 20ms then stop PWM
+0063   0A??           00245     GOTO    PHASE_MOVE
+0064   0486           00246     BCF     PORTB,RB4
+                      00247     ;-------------------------------
+                      00248     
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE  7
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0065                  00249 PWM_OFF
+0065   0467           00250     BCF     PORTC,RC3
+0066   0486           00251     BCF     PORTB,RB4
+0067   04A6           00252     BCF     PORTB,RB5
+0068   0468           00253     BCF     CM1CON0,C1ON            ; Disable C1
+                      00254 ;---------------------   
+                      00255 ; MAIN LOOP
+                      00256 ;---------------------    
+0069                  00257 LOOP  
+                      00258     ;------------
+                      00259     
+                      00260     ;------------
+0069   0201           00261     MOVF    TMR0,W
+006A   019A           00262     XORWF   pwmFR,W
+006B   0E80           00263     ANDLW   0x80
+006C   0643           00264     BTFSC   STATUS,Z
+006D   0A??           00265     GOTO    LOOP
+006E   027A           00266     COMF    pwmFR,F
+006F   02B9           00267     INCF    pwmTR,F                 ; Increse timer counter
+0070   0CC3           00268     MOVLW   PWM_TOFF                ; 200ms
+0071   0199           00269     XORWF   pwmTR,W
+0072   0743           00270     BTFSS   STATUS,Z                ;
+0073   0A??           00271     GOTO    LOOP
+0074   0079           00272     CLRF    pwmTR                   ; Exceed timer interval, reset
+0075   02B4           00273     INCF    pwmIndex,F              ; Increase PWM index   
+                      00274 #ifdef CONFIG_DELAY_PAD
+0076   0C05           00275     MOVLW   PWM_STEP
+0077   0194           00276     XORWF   pwmIndex,W
+0078   0643           00277     BTFSC   STATUS,Z
+0079   09??           00278     CALL    DELAY_PADDING
+                      00279 #endif  ; CONFIG_DELAY_PAD
+007A   02B5           00280     INCF    pwmInterval,F
+007B   0C02           00281     MOVLW   PANEL_CHECK_INTERVAL    ; Reach solar pannel's check                    
+007C   0195           00282     XORWF   pwmInterval,W           ; interval value
+007D   0743           00283     BTFSS   STATUS,Z                ; 
+007E   0A??           00284     GOTO    START
+007F   0075           00285     CLRF    pwmInterval   
+                      00286     
+                      00287 #ifdef CONFIG_USE_8CYCLES    
+                      00288     ;;BSF           VRCON,VREN      ; For reducing power consumption
+0080   056B           00289     BSF     CM2CON0,C2ON            ; only turn on C2 once every second
+0081   09??           00290     CALL    DELAY_10us              ; Make sure C2 stablized
+                      00291 
+0082   037B           00292     RLF     inpCheck,F              ; Check solar panel input for 8 cycles
+0083   06EB           00293     BTFSC   CM2CON0,C2OUT           ; and make sure if it is high for all
+0084   051B           00294     BSF     inpCheck,0              ; cycles
+0085   07EB           00295     BTFSS   CM2CON0,C2OUT
+0086   007B           00296     CLRF    inpCheck
+0087   046B           00297     BCF     CM2CON0,C2ON            ; Turn off C2
+                      00298     ;;BCF           VRCON,VREN
+0088   021B           00299     MOVF    inpCheck,W
+0089   0FFF           00300     XORLW   0xFF
+008A   0743           00301     BTFSS   STATUS,Z
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE  8
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+008B   0A??           00302     GOTO    START                   ;
+008C   007B           00303     CLRF    inpCheck  
+                      00304     ;;BSF           VRCON,VREN
+008D   056B           00305     BSF     CM2CON0,C2ON            ; Keep C2 running before entering sleep
+008E   09??           00306     CALL    DELAY_10us              ; for monitering solar panel input
+008F   0A??           00307     GOTO    SYS_SLEEP 
+                      00308     
+                      00309 #else
+                      00310     ;;BSF   VRCON,VREN              ; For reducing power consumption
+                      00311     BSF     CM2CON0,C2ON            ; only turn on C2 once every second
+                      00312     CALL    DELAY_10us              ; Make sure C2 stablized
+                      00313     MOVF    CM2CON0,W
+                      00314     ANDLW   0x80
+                      00315     BTFSS   STATUS,Z
+                      00316     GOTO    SYS_SLEEP
+                      00317     BCF     CM2CON0,C2ON            ; Turn off C2
+                      00318     ;;BCF   VRCON,VREN
+                      00319     GOTO    START                   ; Goto start
+                      00320 #endif    
+                      00321 
+0090   0A??           00322     GOTO    $                       ; End of main
+                      00323 
+                      00324 ;-------------------    
+                      00325 ; DUTY TABLE
+                      00326 ;-------------------    
+0091                  00327 GET_DUTY                            
+0091   01E2           00328     ADDWF   PCL,F
+                      00329 #ifdef PWM_STEP_5    
+0092   0801           00330     RETLW   0x1                     ; 0
+0093   0802           00331     RETLW   0x2                     ; 1
+0094   0804           00332     RETLW   0x4                     ; 2
+0095   0805           00333     RETLW   0x5                     ; 3
+0096   0806           00334     RETLW   0x6                     ; 4
+0097   0806           00335     RETLW   0x6                     ; 0
+0098   0805           00336     RETLW   0x5                     ; 1
+0099   0803           00337     RETLW   0x3                     ; 2
+009A   0802           00338     RETLW   0x2                     ; 3 
+009B   0801           00339     RETLW   0x1                     ; 4 
+                      00340 #else
+                      00341 #ifdef PWM_STEP_4           ;
+                      00342     RETLW   0x1             ;0 POS 
+                      00343     RETLW   0x2             ;1 POS
+                      00344     RETLW   0x4             ;2 POS
+                      00345     RETLW   0x6             ;3 POS
+                      00346     RETLW   0x6             ;0 NEG
+                      00347     RETLW   0x5             ;1 NEG
+                      00348     RETLW   0x3             ;2 NEG
+                      00349     RETLW   0x1             ;3 NEG
+                      00350 #endif
+                      00351 #endif    
+                      00352     
+009C                  00353 GET_TON_P1
+009C   01E2           00354     ADDWF   PCL,F   
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE  9
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+009D   080A           00355     RETLW   0x0a        ; 2
+009E   0813           00356     RETLW   0x13        ; 3
+009F   081D           00357     RETLW   0x1d        ; 4
+00A0   0827           00358     RETLW   0x27        ; 5
+00A1   0831           00359     RETLW   0x31        ; 6
+                      00360     
+00A2                  00361 GET_TON_P2
+00A2   01E2           00362     ADDWF   PCL,F 
+00A3   0805           00363     RETLW   0x05        ; 2 5
+00A4   0805           00364     RETLW   0x05        ; 3 5
+00A5   0809           00365     RETLW   0x09        ; 4 10
+00A6   081D           00366     RETLW   0x1d        ; 5 30
+00A7   0831           00367     RETLW   0x31        ; 6 50
+                      00368     
+00A8                  00369 GET_TON_P3
+00A8   01E2           00370     ADDWF   PCL,F  
+00A9   0805           00371     RETLW   0x05        ; 2 5
+00AA   0805           00372     RETLW   0x05        ; 3 5
+00AB   0809           00373     RETLW   0x09        ; 4 10
+00AC   081D           00374     RETLW   0x1d        ; 5 30
+00AD   0861           00375     RETLW   0x61        ; 6 100
+                      00376     
+00AE                  00377 GET_TON_P4
+00AE   01E2           00378     ADDWF   PCL,F  
+00AF   0809           00379     RETLW   0x09        ; 2 10
+00B0   0809           00380     RETLW   0x09        ; 3 10
+00B1   0809           00381     RETLW   0x09        ; 4 10
+00B2   081D           00382     RETLW   0x1d        ; 5 30
+00B3   081D           00383     RETLW   0x1d        ; 6 30
+                      00384 
+00B4                  00385 GET_TON_P5
+00B4   01E2           00386     ADDWF   PCL,F 
+00B5   0809           00387     RETLW   0x09        ; 2 10
+00B6   0809           00388     RETLW   0x09        ; 3 10
+00B7   081D           00389     RETLW   0x1d        ; 4 30
+00B8   081D           00390     RETLW   0x1d        ; 5 30
+00B9   0861           00391     RETLW   0x61        ; 6 100
+                      00392     
+                      00393 ;-------------------
+                      00394 ; SUBROUTINES
+                      00395 ;-------------------    
+00BA                  00396 SYS_SLEEP
+00BA   0066           00397     CLRF    PORTB
+00BB   0067           00398     CLRF    PORTC
+00BC   0CFF           00399     MOVLW   0xff
+00BD   0006           00400     TRIS    PORTB                   ; Disable PWM
+00BE   0CFF           00401     MOVLW   0xff
+00BF   0007           00402     TRIS    PORTC                   ; Disable PWM
+00C0   0C30           00403     MOVLW   0x30 
+00C1   0029           00404     MOVWF   ADCON0                  ; Disable ADC
+00C2   0CE3           00405     MOVLW   0xe3
+00C3   0028           00406     MOVWF   CM1CON0                 ; Disable C1 
+00C4   020B           00407     MOVF    CM2CON0,W
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE 10
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+00C5   002F           00408     MOVWF   0xF
+00C6   0003           00409     SLEEP
+                      00410     
+00C7                  00411 DELAY_10us    
+00C7   0A??           00412     GOTO    $+1         
+00C8   0A??           00413     GOTO    $+1 
+00C9   0A??           00414     GOTO    $+1 
+00CA   0A??           00415     GOTO    $+1 
+00CB   0A??           00416     GOTO    $+1 
+00CC   0A??           00417     GOTO    $+1 
+00CD   0A??           00418     GOTO    $+1 
+00CE   0A??           00419     GOTO    $+1 
+00CF   0A??           00420     GOTO    $+1 
+00D0   0A??           00421     GOTO    $+1
+Warning[227]: Substituting RETLW 0 for RETURN pseudo-op
+00D1   0800           00422     RETURN
+                      00423     
+00D2                  00424 DELAY_PADDING
+                      00425 #ifdef  CONFIG_DELAY_PAD  
+00D2   0201           00426     MOVF    TMR0,W
+00D3   019A           00427     XORWF   pwmFR,W
+00D4   0E80           00428     ANDLW   0x80
+00D5   0643           00429     BTFSC   STATUS,Z
+00D6   0A??           00430     GOTO    DELAY_PADDING
+00D7   027A           00431     COMF    pwmFR,F
+00D8   02B9           00432     INCF    pwmTR,F                 ; Increse timer counter
+00D9   0C0A           00433     MOVLW   PWM_TPAD_IVAL           ; 10ms
+00DA   0199           00434     XORWF   pwmTR,W
+00DB   0743           00435     BTFSS   STATUS,Z                ;
+00DC   0A??           00436     GOTO    DELAY_PADDING
+00DD   0079           00437     CLRF    pwmTR                   ; Exceed timer interval, reset  
+00DE   02B7           00438     INCF    pwmPad,F
+00DF   0C22           00439     MOVLW   PWM_TPAD                ; Exceed padding delay   
+00E0   0197           00440     XORWF   pwmPad,W                ; interval value
+00E1   0743           00441     BTFSS   STATUS,Z                ; 
+00E2   0A??           00442     GOTO    DELAY_PADDING
+00E3   0077           00443     CLRF    pwmPad 
+                      00444 #endif    
+00E4   0800           00445     RETLW   0
+                      00446     
+                      00447 ;-------------------
+                      00448 ; FOR DEBUG
+                      00449 ;-------------------    
+00E5                  00450 TMR0_TEST_FREQ  
+00E5   06E1           00451     BTFSC   TMR0,7
+00E6   0567           00452     BSF     PORTC,3
+00E7   07E1           00453     BTFSS   TMR0,7
+00E8   0467           00454     BCF     PORTC,3
+00E9   0A??           00455     GOTO    TMR0_TEST_FREQ
+                      00456   
+00EA                  00457 CM2_TEST_FUNC
+00EA   06EB           00458     BTFSC   CM2CON0,C2OUT
+00EB   0567           00459     BSF     PORTC,3
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE 11
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+00EC   07EB           00460     BTFSS   CM2CON0,C2OUT
+00ED   0467           00461     BCF     PORTC,3
+00EE   0A??           00462     GOTO    CM2_TEST_FUNC
+0F94                  00463     END
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE 12
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+ADCON0                            00000009
+ADCS0                             00000004
+ADCS1                             00000005
+ADON                              00000000
+ADRES                             0000000A
+ANS0                              00000006
+ANS1                              00000007
+C                                 00000000
+C1NREF                            00000002
+C1ON                              00000003
+C1OUT                             00000007
+C1POL                             00000005
+C1PREF                            00000001
+C2NREF                            00000002
+C2ON                              00000003
+C2OUT                             00000007
+C2POL                             00000005
+C2PREF1                           00000001
+C2PREF2                           00000004
+CAL0                              00000001
+CAL1                              00000002
+CAL2                              00000003
+CAL3                              00000004
+CAL4                              00000005
+CAL5                              00000006
+CAL6                              00000007
+CHS0                              00000002
+CHS1                              00000003
+CM1CON0                           00000008
+CM2CON0                           0000000B
+CM2_TEST_FUNC                     000000EA
+CONFIG_DELAY_PAD                  
+CONFIG_USE_8CYCLES                
+CWUF                              00000006
+DC                                00000001
+DELAY_10us                        000000C7
+DELAY_PADDING                     000000D2
+F                                 00000001
+FSR                               00000004
+GET_DUTY                          00000091
+GET_TON_P1                        0000009C
+GET_TON_P2                        000000A2
+GET_TON_P3                        000000A8
+GET_TON_P4                        000000AE
+GET_TON_P5                        000000B4
+GO                                00000001
+GO_NOT_DONE                       00000001
+INDF                              00000000
+LOOP                              00000069
+NOT_C1OUTEN                       00000006
+NOT_C1T0CS                        00000004
+NOT_C1WU                          00000000
+NOT_C2OUTEN                       00000006
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE 13
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+NOT_C2WU                          00000000
+NOT_DONE                          00000001
+NOT_GPPU                          00000006
+NOT_GPWU                          00000007
+NOT_PD                            00000003
+NOT_RBPU                          00000006
+NOT_RBWU                          00000007
+NOT_TO                            00000004
+OSCCAL                            00000005
+PA0                               00000005
+PANEL_CHECK_INTERVAL              2
+PCL                               00000002
+PHASE_MOVE                        00000050
+PORSTAT                           0x18
+PORTB                             00000006
+PORTC                             00000007
+PS0                               00000000
+PS1                               00000001
+PS2                               00000002
+PSA                               00000003
+PWM_DOFF                          PWM_TSIZE
+PWM_IVAL                          0xc3
+PWM_OFF                           00000065
+PWM_PUT                           00000036
+PWM_STEP                          PWM_STEP_5
+PWM_STEP_5                        5
+PWM_TOFF                          0xc3
+PWM_TPAD                          0x22
+PWM_TPAD_IVAL                     0xa
+PWM_TSIZE                         PWM_STEP
+RB0                               00000000
+RB1                               00000001
+RB2                               00000002
+RB3                               00000003
+RB4                               00000004
+RB5                               00000005
+RBWUF                             00000007
+RC0                               00000000
+RC1                               00000001
+RC2                               00000002
+RC3                               00000003
+RC4                               00000004
+RC5                               00000005
+RESMASK                           0xf8
+RESTART                           00000000
+START                             00000029
+STATUS                            00000003
+SYS_SLEEP                         000000BA
+T0CS                              00000005
+T0SE                              00000004
+TMR0                              00000001
+TMR0_TEST_FREQ                    000000E5
+TRISB0                            00000000
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE 14
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+TRISB1                            00000001
+TRISB2                            00000002
+TRISB3                            00000003
+TRISB4                            00000004
+TRISB5                            00000005
+TRISC0                            00000000
+TRISC1                            00000001
+TRISC2                            00000002
+TRISC3                            00000003
+TRISC4                            00000004
+TRISC5                            00000005
+VR0                               00000000
+VR1                               00000001
+VR2                               00000002
+VR3                               00000003
+VRCON                             0000000C
+VREN                              00000007
+VROE                              00000006
+VRR                               00000005
+W                                 00000000
+Z                                 00000002
+_CONFIG                           00000FFF
+_CP_OFF                           00000FFF
+_CP_ON                            00000FEF
+_EC_OSC                           00000FFB
+_ExtRC_OSC_CLKOUTEN               00000FFF
+_ExtRC_OSC_RB4EN                  00000FFE
+_HS_OSC                           00000FFA
+_IDLOC0                           00000400
+_IDLOC1                           00000401
+_IDLOC2                           00000402
+_IDLOC3                           00000403
+_IOSCFS_OFF                       00000FBF
+_IOSCFS_ON                        00000FFF
+_IntRC_OSC_CLKOUTEN               00000FFD
+_IntRC_OSC_RB4EN                  00000FFC
+_LP_OSC                           00000FF8
+_MAIN_PROG_003A                   0000003A
+_MAIN_PROG_0043                   00000043
+_MAIN_PROG_0054                   00000054
+_MAIN_PROG_005D                   0000005D
+_MAIN_PROG_0090                   00000090
+_MAIN_PROG_00C7                   000000C7
+_MAIN_PROG_00C8                   000000C8
+_MAIN_PROG_00C9                   000000C9
+_MAIN_PROG_00CA                   000000CA
+_MAIN_PROG_00CB                   000000CB
+_MAIN_PROG_00CC                   000000CC
+_MAIN_PROG_00CD                   000000CD
+_MAIN_PROG_00CE                   000000CE
+_MAIN_PROG_00CF                   000000CF
+_MAIN_PROG_00D0                   000000D0
+_MCLRE_OFF                        00000FDF
+MPASM 5.72                    LEDCONTROL.ASM   1-4-2018  9:30:26         PAGE 15
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+_MCLRE_ON                         00000FFF
+_OSC_EC                           00000FFB
+_OSC_ExtRC_CLKOUTEN               00000FFF
+_OSC_ExtRC_RB4EN                  00000FFE
+_OSC_HS                           00000FFA
+_OSC_IntRC_CLKOUTEN               00000FFD
+_OSC_IntRC_RB4EN                  00000FFC
+_OSC_LP                           00000FF8
+_OSC_XT                           00000FF9
+_WDT_OFF                          00000FF7
+_WDT_ON                           00000FFF
+_XT_OSC                           00000FF9
+__16F506                          00000001
+cmpFR                             0000001C
+inpCheck                          0000001B
+pwmDuty                           00000012
+pwmFR                             0000001A
+pwmIndex                          00000014
+pwmInterval                       00000015
+pwmPad                            00000017
+pwmPeriod                         00000013
+pwmPi                             00000018
+pwmTR                             00000019
+pwmTon                            00000016
+resSR                             0000001D
+
+Errors   :     0
+Warnings :     4 reported,     0 suppressed
+Messages :     0 reported,     0 suppressed
+
+
